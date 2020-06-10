@@ -56,4 +56,6 @@ local parameters = {...}
 if parameters[1] then is_for_group = parameters[1] end
 if parameters[2] then is_for_abbreviated_names = parameters[2] end
 
+finenv.UI():AlertInfo("is for group = " .. tostring(is_for_group) .. " is for abrv = " .. tostring(is_for_abbreviated_names), nil)
+
 prefs_reset_name_fonts(is_for_group, is_for_abbreviated_names)
