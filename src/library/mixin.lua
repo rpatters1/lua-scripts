@@ -180,14 +180,14 @@ end
 -- Returns the name of the parent class
 -- This function should only be called for classnames that start with "FC" or "__FC"
 local get_parent_class = function(classname)
-    local class = _G.finale[classname]
+    local class = finale_[classname]
     if type(class) ~= "table" then return nil end
     if not finenv.IsRGPLua then -- old jw lua
         classt = class.__class
         if classt and classname ~= "__FCBase" then
             classtp = classt.__parent -- this line crashes Finale (in jw lua 0.54) if "__parent" doesn't exist, so we excluded "__FCBase" above, the only class without a parent
             if classtp and type(classtp) == "table" then
-                for k, v in pairs(_G.finale) do
+                for k, v in pairs(finale_) do
                     if type(v) == "table" then
                         if v.__class and v.__class == classtp then
                             return tostring(k)
@@ -442,7 +442,8 @@ function mixin.get_mixin(class, mixin_name)
 end
 
 -- Keep a copy of the original finale namespace. Available globally, if needed for performance reasons.
-finale_ = finale
+-- RGP Lua 0.60 introduced finenv.RetainLuaState, so only do it once if we are being required a 2nd time.
+finale_ = finale_ or finale
 
 -- Turn the finale namespace into a proxy
 finale = setmetatable({}, {
