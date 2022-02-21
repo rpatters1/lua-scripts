@@ -3,8 +3,24 @@ function plugindef()
     finaleplugin.RequireDocument = false
 end
 
+--plugindef()
+
 if finenv.IsRGPLua then
     require("mobdebug").start()
+end
+
+if not finaleplugin then
+    print("finaleplugin is nil")
+    return
+end
+
+if type(finaleplugin) == "table" then
+    for k, v in pairsbykeys(finaleplugin) do
+        print(tostring(k)..": "..tostring(v))
+    end
+    return
+else
+    print("finaleplugin is not a table.")
 end
 
 if not finenv.RetainLuaState then

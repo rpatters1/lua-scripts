@@ -175,7 +175,7 @@ print(dialog.has_mixin('my_custom_dialog')) -- true
     end,
 
 --[[
-% has_mixin(name)
+% apply_mixin(name)
 
 Object Method: Applies a mixin to the object it is called on.
 
