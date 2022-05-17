@@ -10,6 +10,7 @@ Summary of modifications:
 - Windows also have the option of inheriting the parent window's measurement unit when opening.
 - Introduced a `MeasurementUnitChange` event.
 - All controls with an `UpdateMeasurementUnit` method will have that method called upon a measurement unit change to allow them to immediately update their displayed values without needing to wait for a `MeasurementUnitChange` event.
+- Changed the default auto restoration behaviour for window position to enabled for position only.
 ]] --
 local mixin = require("library.mixin")
 local mixin_helper = require("library.mixin_helper")
@@ -35,6 +36,8 @@ function props:Init()
             MeasurementUnit = measurement.get_real_default_unit(),
             UseParentMeasurementUnit = true,
         }
+
+    self:SetAutoRestorePosition(true)
 end
 
 --[[
@@ -230,7 +233,7 @@ function props:ExecuteModal(parent)
         self:SetMeasurementUnit(parent:GetMeasurementUnit())
     end
 
-    return mixin.FCMCustomWindow.ExecuteModal(self, parent)
+    return mixin.FCMCustomLuaWindow.ExecuteModal(self, parent)
 end
 
 --[[
