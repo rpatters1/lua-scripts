@@ -1,6 +1,6 @@
 function plugindef()
     finaleplugin.RequireSelection = false
-    finaleplugin.HandlesUndo = true     -- not recognized by JW Lua or RGP Lua v0.55
+    finaleplugin.HandlesUndo = true -- not recognized by JW Lua or RGP Lua v0.55
     finaleplugin.Author = "Robert Patterson"
     finaleplugin.Copyright = "CC0 https://creativecommons.org/publicdomain/zero/1.0/"
     finaleplugin.Version = "1.1"
@@ -30,9 +30,10 @@ function plugindef()
         Later versions of RGP Lua (0.58 or higher) ignore this configuration file (if it exists) and read the correct
         information from the Finale document.
     ]]
-    return "Transpose By Steps...", "Transpose By Steps",
-           "Transpose by the number of steps given, simplifying spelling as needed."
+    return "Transpose By Steps...", "Transpose By Steps", "Transpose by the number of steps given, simplifying spelling as needed."
 end
+
+local mixin = require("library.mixin")
 
 global_dialog = nil
 global_number_of_steps_edit = nil
@@ -40,12 +41,7 @@ global_number_of_steps_edit = nil
 local modifier_keys_on_invoke = false
 
 if not finenv.RetainLuaState then
-    context =
-    {
-        number_of_steps = nil,
-        window_pos_x = nil,
-        window_pos_y = nil
-    }
+    context = {number_of_steps = nil, window_pos_x = nil, window_pos_y = nil}
 end
 
 if not finenv.IsRGPLua then
@@ -85,36 +81,6 @@ function do_transpose_by_step(global_number_of_steps_edit)
     return success
 end
 
-function create_dialog_box()
-    local str = finale.FCString()
-    local dialog = finale.FCCustomLuaWindow()
-    str.LuaString = "Transpose By Steps"
-    dialog:SetTitle(str)
-    local current_y = 0
-    local x_increment = 105
-    -- number of steps
-    local static = dialog:CreateStatic(0, current_y+2)
-    str.LuaString = "Number Of Steps:"
-    static:SetText(str)
-    local edit_x = x_increment
-    if finenv.UI():IsOnMac() then
-        edit_x = edit_x + 4
-    end
-    global_number_of_steps_edit = dialog:CreateEdit(edit_x, current_y)
-    if context.number_of_steps and 0 ~= context.number_of_steps then
-        local str = finale.FCString()
-        str:AppendInteger(context.number_of_steps)
-        global_number_of_steps_edit:SetText(str)
-    end
--- ok/cancel
-    dialog:CreateOkButton()
-    dialog:CreateCancelButton()
-    if dialog.OkButtonCanClose then -- OkButtonCanClose will be nil before 0.56 and true (the default) after
-        dialog.OkButtonCanClose = modifier_keys_on_invoke
-    end
-    return dialog
-end
-    
 function on_ok()
     do_transpose_by_step(global_number_of_steps_edit:GetInteger())
 end
@@ -130,27 +96,46 @@ function on_close()
     end
 end
 
+function create_dialog_box()
+    local dialog = mixin.FCXCustomLuaWindow():SetTitle("Transpose By Steps")
+    local current_y = 0
+    local x_increment = 105
+    -- number of steps
+    dialog:CreateStatic(0, current_y + 2):SetText("Number Of Steps:")
+    local edit_x = x_increment
+    if finenv.UI():IsOnMac() then
+        edit_x = edit_x + 4
+    end
+    global_number_of_steps_edit = dialog:CreateEdit(edit_x, current_y)
+    -- ok/cancel
+    dialog:CreateOkButton()
+    dialog:CreateCancelButton()
+    if dialog.OkButtonCanClose then -- OkButtonCanClose will be nil before 0.56 and true (the default) after
+        dialog.OkButtonCanClose = modifier_keys_on_invoke
+    end
+    dialog:RegisterHandleOkButtonPressed(on_ok)
+    if dialog.RegisterCloseWindow then
+        dialog:RegisterCloseWindow(on_close)
+    end
+    if finenv.RegisterModelessDialog then
+        finenv.RegisterModelessDialog(global_dialog)
+    end
+    return dialog
+end
+
 function transpose_by_step()
     modifier_keys_on_invoke = finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT)
     if modifier_keys_on_invoke and context.number_of_steps then
         do_transpose_by_step(context.number_of_steps)
         return
     end
-    global_dialog = create_dialog_box()
-    if nil ~= context.window_pos_x and nil ~= context.window_pos_y then
-        global_dialog:StorePosition()
-        global_dialog:SetRestorePositionOnlyData(context.window_pos_x, context.window_pos_y)
-        global_dialog:RestorePosition()
-    end
-    global_dialog:RegisterHandleOkButtonPressed(on_ok)
-    if global_dialog.RegisterCloseWindow then
-        global_dialog:RegisterCloseWindow(on_close)
-    end
-    if finenv.IsRGPLua then
+    if not global_dialog then
+        global_dialog = create_dialog_box()
         if nil ~= finenv.RetainLuaState then
             finenv.RetainLuaState = true
         end
-        finenv.RegisterModelessDialog(global_dialog)
+    end
+    if finenv.IsRGPLua then
         global_dialog:ShowModeless()
     else
         if finenv.Region():IsEmpty() then
@@ -160,5 +145,7 @@ function transpose_by_step()
         global_dialog:ExecuteModal(nil)
     end
 end
+
+require('mobdebug').start()
 
 transpose_by_step()
