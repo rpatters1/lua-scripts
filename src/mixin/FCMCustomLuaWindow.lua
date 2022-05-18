@@ -32,13 +32,13 @@ end
 local function restore_position(window)
     if private[window].HasBeenShown and (finenv.MajorVersion > 0 or finenv.MinorVersion >= 60) then
         if private[window].AutoRestoreSize and private[window].StoredWidth ~= -1 then
-            window:StorePosition()
+            window:StorePosition(true)
             window:SetRestorePositionData_(
                 private[window].StoredX, private[window].StoredY, private[window].StoredWidth,
                 private[window].StoredHeight)
             window:RestorePosition()
         elseif private[window].AutoRestorePosition then
-            window:StorePosition()
+            window:StorePosition(false)
             window:SetRestorePositionOnlyData_(private[window].StoredX, private[window].StoredY)
             window:RestorePosition()
         end
