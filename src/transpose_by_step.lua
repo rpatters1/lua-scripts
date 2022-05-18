@@ -30,18 +30,17 @@ function plugindef()
         Later versions of RGP Lua (0.58 or higher) ignore this configuration file (if it exists) and read the correct
         information from the Finale document.
     ]]
-    return "Transpose By Steps...", "Transpose By Steps", "Transpose by the number of steps given, simplifying spelling as needed."
+    return "Transpose By Steps...", "Transpose By Steps",
+           "Transpose by the number of steps given, simplifying spelling as needed."
 end
 
 local mixin = require("library.mixin")
 
-global_dialog = nil
-global_number_of_steps_edit = nil
-
 local modifier_keys_on_invoke = false
 
 if not finenv.RetainLuaState then
-    context = {number_of_steps = nil, window_pos_x = nil, window_pos_y = nil}
+    global_dialog = nil
+    global_number_of_steps = 0
 end
 
 if not finenv.IsRGPLua then
@@ -76,24 +75,26 @@ function do_transpose_by_step(global_number_of_steps_edit)
         finenv.StartNewUndoBlock(undostr, true) -- JW Lua automatically terminates the final undo block we start here
     end
     if not success then
-        finenv.UI():AlertError("Finale is unable to represent some of the transposed pitches. These pitches were left at their original value.", "Transposition Error")
+        finenv.UI():AlertError(
+            "Finale is unable to represent some of the transposed pitches. These pitches were left at their original value.",
+            "Transposition Error")
     end
     return success
 end
 
 function on_ok()
-    do_transpose_by_step(global_number_of_steps_edit:GetInteger())
+    do_transpose_by_step(global_number_of_steps)
 end
 
 function on_close()
-    if global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_ALT) or global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_SHIFT) then
+    if global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_ALT) or
+        global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_SHIFT) then
         finenv.RetainLuaState = false
-    else
-        context.number_of_steps = global_number_of_steps_edit:GetInteger()
-        global_dialog:StorePosition()
-        context.window_pos_x = global_dialog.StoredX
-        context.window_pos_y = global_dialog.StoredY
     end
+end
+
+function on_edit_change(edit_control, string_value)
+    global_number_of_steps = edit_control:GetInteger()
 end
 
 function create_dialog_box()
@@ -106,7 +107,7 @@ function create_dialog_box()
     if finenv.UI():IsOnMac() then
         edit_x = edit_x + 4
     end
-    global_number_of_steps_edit = dialog:CreateEdit(edit_x, current_y)
+    dialog:CreateEdit(edit_x, current_y):AddHandleChange(on_edit_change):SetInteger(0)
     -- ok/cancel
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
@@ -118,15 +119,16 @@ function create_dialog_box()
         dialog:RegisterCloseWindow(on_close)
     end
     if finenv.RegisterModelessDialog then
-        finenv.RegisterModelessDialog(global_dialog)
+        finenv.RegisterModelessDialog(dialog)
     end
     return dialog
 end
 
 function transpose_by_step()
-    modifier_keys_on_invoke = finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT)
-    if modifier_keys_on_invoke and context.number_of_steps then
-        do_transpose_by_step(context.number_of_steps)
+    modifier_keys_on_invoke = finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or
+                                  finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT)
+    if modifier_keys_on_invoke and global_number_of_steps then
+        do_transpose_by_step(global_number_of_steps)
         return
     end
     if not global_dialog then
@@ -146,6 +148,6 @@ function transpose_by_step()
     end
 end
 
-require('mobdebug').start()
+require("mobdebug").start()
 
 transpose_by_step()
