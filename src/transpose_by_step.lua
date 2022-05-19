@@ -34,14 +34,7 @@ function plugindef()
            "Transpose by the number of steps given, simplifying spelling as needed."
 end
 
-local mixin = require("library.mixin")
-
 local modifier_keys_on_invoke = false
-
-if not finenv.RetainLuaState then
-    global_dialog = nil
-    global_number_of_steps = 0
-end
 
 if not finenv.IsRGPLua then
     local path = finale.FCString()
@@ -50,6 +43,7 @@ if not finenv.IsRGPLua then
 end
 
 local transposition = require("library.transposition")
+local mixin = require("library.mixin")
 
 function do_transpose_by_step(global_number_of_steps_edit)
     if finenv.Region():IsEmpty() then
@@ -83,18 +77,16 @@ function do_transpose_by_step(global_number_of_steps_edit)
 end
 
 function on_ok()
-    do_transpose_by_step(global_number_of_steps)
+    do_transpose_by_step(global_dialog:GetControl("num_steps"):GetInteger())
 end
 
 function on_close()
-    if global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_ALT) or
-        global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_SHIFT) then
-        finenv.RetainLuaState = false
+    if finenv.DebugEnabled then
+        if global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_ALT) or
+            global_dialog:QueryLastCommandModifierKeys(finale.CMDMODKEY_SHIFT) then
+            finenv.RetainLuaState = false
+        end
     end
-end
-
-function on_edit_change(edit_control, string_value)
-    global_number_of_steps = edit_control:GetInteger()
 end
 
 function create_dialog_box()
@@ -107,7 +99,7 @@ function create_dialog_box()
     if finenv.UI():IsOnMac() then
         edit_x = edit_x + 4
     end
-    dialog:CreateEdit(edit_x, current_y):AddHandleChange(on_edit_change):SetInteger(0)
+    dialog:CreateEdit(edit_x, current_y, "num_steps"):SetText("")
     -- ok/cancel
     dialog:CreateOkButton()
     dialog:CreateCancelButton()
@@ -118,27 +110,25 @@ function create_dialog_box()
     if dialog.RegisterCloseWindow then
         dialog:RegisterCloseWindow(on_close)
     end
-    if finenv.RegisterModelessDialog then
-        finenv.RegisterModelessDialog(dialog)
-    end
     return dialog
 end
 
 function transpose_by_step()
-    modifier_keys_on_invoke = finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or
-                                  finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT)
-    if modifier_keys_on_invoke and global_number_of_steps then
-        do_transpose_by_step(global_number_of_steps)
+    modifier_keys_on_invoke = finenv.IsRGPLua and
+                                  (finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or
+                                      finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT))
+    if modifier_keys_on_invoke and global_dialog then
+        on_ok()
         return
     end
     if not global_dialog then
         global_dialog = create_dialog_box()
-        if nil ~= finenv.RetainLuaState then
-            finenv.RetainLuaState = true
-        end
     end
     if finenv.IsRGPLua then
-        global_dialog:ShowModeless()
+        finenv.RegisterModelessDialog(global_dialog)
+        if global_dialog:ShowModeless() then
+            finenv.RetainLuaState = true
+        end
     else
         if finenv.Region():IsEmpty() then
             finenv.UI():AlertInfo("Please select a music region before running this script.", "Selection Required")
@@ -147,7 +137,5 @@ function transpose_by_step()
         global_dialog:ExecuteModal(nil)
     end
 end
-
-require("mobdebug").start()
 
 transpose_by_step()
