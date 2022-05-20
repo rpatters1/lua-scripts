@@ -257,7 +257,7 @@ function on_close()
 end
 
 function transpose_chromatic()
-    modifier_keys_on_invoke = finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT)
+    modifier_keys_on_invoke = finenv.IsRGPLua and (finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_ALT) or finenv.QueryInvokedModifierKeys(finale.CMDMODKEY_SHIFT))
     if modifier_keys_on_invoke and nil ~= context.interval_index then
         do_transpose_chromatic(context.direction, context.interval_index, context.simplify, context.plus_octaves, context.preserve_originals)
         return
