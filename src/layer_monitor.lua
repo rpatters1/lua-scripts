@@ -11,6 +11,16 @@ function plugindef()
     return "Layer Monitor...", "Layer Monitor", "Monitors the currently selected and displays it in large type."
 end
 
+-- These colors are the Finale default program settings for layer colors.
+-- The PDK does not provide access to these values, but
+-- you can override them with a configuration file.
+config = {
+    color_layer1 = {0, 0, 0},
+    color_layer2 = {170, 31, 55},
+    color_layer3 = {52, 112, 92},
+    color_layer4 = {46, 85, 138}
+}
+
 local mixin = require("library.mixin")
 
 function calc_current_layer_string()
@@ -30,6 +40,14 @@ function calc_current_layer_string()
         return "N/A"
     end
     return "Err"
+end
+
+function calc_layer_color(layer_string)
+    local retval = config["color_layer"..layer_string]
+    if not retval then
+        retval = config.color_layer1
+    end
+    return retval
 end
 
 --[[
@@ -76,7 +94,11 @@ function create_dialog_box()
                 :SetHeight(45)
     dialog:CreateOkButton():SetText("Close")
     dialog:RegisterHandleTimer(function(self, timer_id)
-            self:GetControl("layer_string"):SetText(calc_current_layer_string())
+            local static = self:GetControl("layer_string")
+            local layer_text = calc_current_layer_string()
+            local layer_color = calc_layer_color(layer_text)
+            static:SetTextColor(layer_color[1], layer_color[2], layer_color[3]) -- table.unpack generates a warning, so don't use it
+            static:SetText(layer_text)
         end
     )
     dialog:RegisterInitWindow(function(self)
