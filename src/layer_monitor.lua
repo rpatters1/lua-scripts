@@ -15,7 +15,8 @@ local mixin = require("library.mixin")
 
 function calc_current_layer_string()
     local misc_prefs = finale.FCMiscDocPrefs()
-    if misc_prefs:Load(1) then
+    local curr_doc = finale.FCDocument(-1) -- current document
+    if curr_doc.ID > 0 and misc_prefs:Load(1) then
         if misc_prefs.ShowActiveLayerOnly then
             for layer_number = 1, finenv.UI():GetMaxLayers() do
                 if finenv.UI():IsLayerVisible(layer_number) then
@@ -71,15 +72,15 @@ function create_dialog_box()
     dialog:CreateStatic(0, 10, "layer_string")
                 :SetText(calc_current_layer_string())
                 :SetFont(font)
-                :SetWidth(80)
-                :SetHeight(40)
+                :SetWidth(85)
+                :SetHeight(45)
     dialog:CreateOkButton():SetText("Close")
-    dialog:RegisterHandleTimer(function(timer_id)
-            global_dialog:GetControl("layer_string"):SetText(calc_current_layer_string())
+    dialog:RegisterHandleTimer(function(self, timer_id)
+            self:GetControl("layer_string"):SetText(calc_current_layer_string())
         end
     )
     dialog:RegisterInitWindow(function(self)
-            self.OkButtonCanClose = true -- override default behavior
+            self.OkButtonCanClose = true -- override default behavior of RunModeless()
             self:SetTimer(global_timer_id, 100) -- timer can't be set until window is created
         end
     )
