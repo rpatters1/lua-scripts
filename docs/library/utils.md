@@ -2,16 +2,20 @@
 
 A library of general Lua utility functions.
 
-- [copy_table](#copy_table)
-- [table_remove_first](#table_remove_first)
-- [iterate_keys](#iterate_keys)
-- [round](#round)
+## Functions
 
-## copy_table
+- [copy_table(t)](#copy_table)
+- [table_remove_first(t, value)](#table_remove_first)
+- [iterate_keys(t)](#iterate_keys)
+- [round(num)](#round)
+
+### copy_table
 
 ```lua
 utility_functions.copy_table(t)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/utils.lua#L16)
 
 If a table is passed, returns a copy, otherwise returns the passed value.
 
@@ -23,11 +27,13 @@ If a table is passed, returns a copy, otherwise returns the passed value.
 | ----------- | ----------- |
 | `mixed` |  |
 
-## table_remove_first
+### table_remove_first
 
 ```lua
 utility_functions.table_remove_first(t, value)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/utils.lua#L37)
 
 Removes the first occurrence of a value from an array table.
 
@@ -36,11 +42,13 @@ Removes the first occurrence of a value from an array table.
 | `t` | `table` |  |
 | `value` | `mixed` |  |
 
-## iterate_keys
+### iterate_keys
 
 ```lua
 utility_functions.iterate_keys(t)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/utils.lua#L54)
 
 Returns an unordered iterator for the keys in a table.
 
@@ -52,11 +60,13 @@ Returns an unordered iterator for the keys in a table.
 | ----------- | ----------- |
 | `function` |  |
 
-## round
+### round
 
 ```lua
 utility_functions.round(num)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/utils.lua#L71)
 
 Rounds a number to the nearest whole integer.
 

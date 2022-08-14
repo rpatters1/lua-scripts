@@ -4,47 +4,43 @@ import { getInput } from '@actions/core'
 import fs from 'fs-extra'
 
 import { bundleFile } from './bundle'
-import type { LibraryInput } from './prepare-library'
-import { prepareLibrary } from './prepare-library'
 
-const sourcePath = path.join(...getInput('source', { required: true }).split('/'))
-const libraryPath = path.join(sourcePath, 'library')
+const IS_DEV_ENVIRONMENT = process.env.NODE_ENV === 'development'
+const sourcePath = IS_DEV_ENVIRONMENT
+    ? path.join('..', '..', '..', 'src')
+    : path.join(...getInput('source', { required: true }).split('/'))
 
-const outputPath = path.join(...getInput('output', { required: true }).split('/'))
+const outputPath = IS_DEV_ENVIRONMENT
+    ? path.join('..', '..', '..', 'dist')
+    : path.join(...getInput('output', { required: true }).split('/'))
 
-/* 
-   create bundled library files
-    */
-
-const libraryFileNames = fs.readdirSync(libraryPath)
-const libraryRawFiles: LibraryInput = []
-
-libraryFileNames.forEach((fileName) => {
-    const name = fileName.replace('.lua', '')
-    const contents = fs.readFileSync(path.join(libraryPath, fileName)).toString()
-    libraryRawFiles.push({
-        fileName: name,
-        contents,
-    })
-})
-
-const library = prepareLibrary(libraryRawFiles)
-
-/* 
+/*
    remove old bundled files (if they exist)
     */
 
 fs.ensureDirSync(outputPath)
-fs.readdirSync(outputPath).forEach((fileName) => fs.removeSync(fileName))
+fs.readdirSync(outputPath).forEach(fileName => fs.removeSync(fileName))
 
-/* 
+const mixins = fs
+    .readdirSync(path.join(sourcePath, 'mixin'))
+    .filter(fileName => fileName.endsWith('.lua'))
+    .map(file => 'mixin.' + file.replace(/\.lua$/, ''))
+if (fs.pathExistsSync(path.join(sourcePath, 'personal_mixin'))) {
+    mixins.push(
+        ...fs
+            .readdirSync(path.join(sourcePath, 'personal_mixin'))
+            .filter(fileName => fileName.endsWith('.lua'))
+            .map(file => 'personal_mixin.' + file.replace(/\.lua$/, ''))
+    )
+}
+
+/*
    bundle and save source files
     */
 
-const sourceFiles = fs.readdirSync(sourcePath).filter((fileName) => fileName.endsWith('.lua'))
+const sourceFiles = fs.readdirSync(sourcePath).filter(fileName => fileName.endsWith('.lua'))
 
-sourceFiles.forEach((file) => {
-    const contents = fs.readFileSync(path.join(sourcePath, file)).toString()
-    const bundledFile = bundleFile(contents, library)
+sourceFiles.forEach(file => {
+    const bundledFile = bundleFile(file, sourcePath, mixins)
     fs.writeFileSync(path.join(outputPath, file), bundledFile)
 })

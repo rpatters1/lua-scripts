@@ -3,22 +3,26 @@
 This library encapsulates Finale's behavior for initializing FCTieMod endpoints,
 as well as providing other useful information about ties.
 
-- [calc_tied_to](#calc_tied_to)
-- [calc_tied_from](#calc_tied_from)
-- [calc_tie_span](#calc_tie_span)
-- [calc_default_direction](#calc_default_direction)
-- [calc_direction](#calc_direction)
-- [calc_connection_code](#calc_connection_code)
-- [calc_placement](#calc_placement)
-- [activate_endpoints](#activate_endpoints)
-- [calc_contour_index](#calc_contour_index)
-- [activate_contour](#activate_contour)
+## Functions
 
-## calc_tied_to
+- [calc_tied_to(note)](#calc_tied_to)
+- [calc_tied_from(note)](#calc_tied_from)
+- [calc_tie_span(note, for_tied_to, tie_must_exist)](#calc_tie_span)
+- [calc_default_direction(note, for_tieend, tie_prefs)](#calc_default_direction)
+- [calc_direction(note, tie_mod, tie_prefs)](#calc_direction)
+- [calc_connection_code(note, placement, direction, for_endpoint, for_tieend, for_pageview, tie_prefs)](#calc_connection_code)
+- [calc_placement(note, tie_mod, for_pageview, direction, tie_prefs)](#calc_placement)
+- [activate_endpoints(note, tie_mod, for_pageview, tie_prefs)](#activate_endpoints)
+- [calc_contour_index(note, tie_mod, for_pageview, direction, tie_prefs)](#calc_contour_index)
+- [activate_contour(note, tie_mod, for_pageview, tie_prefs)](#activate_contour)
+
+### calc_tied_to
 
 ```lua
 tie.calc_tied_to(note)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L41)
 
 
 Calculates the note that the input note could be (or is) tied to.
@@ -36,11 +40,13 @@ input note and the tied-to note.
 | ----------- | ----------- |
 | `FCNote` | Returns the tied-to note or nil if none |
 
-## calc_tied_from
+### calc_tied_from
 
 ```lua
 tie.calc_tied_from(note)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L81)
 
 
 Calculates the note that the input note could be (or is) tied from.
@@ -58,44 +64,50 @@ input note and the tied-from note.
 | ----------- | ----------- |
 | `FCNote` | Returns the tied-from note or nil if none |
 
-## calc_tie_span
+### calc_tie_span
 
 ```lua
-tie.calc_tie_span(note)
+tie.calc_tie_span(note, for_tied_to, tie_must_exist)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L123)
 
 
 Calculates the (potential) start and end notes for a tie, given an input note. The
 input note can be from anywhere, including from the `eachentry()` iterator functions.
 The function returns 3 values:
 
-    - A FCNoteLayerEntry containing both the start and and notes (if they exist).
-    You must maintain the lifetime of this variable as long as you are referencing either
-    of the other two values.
-    - The potential or actual start note of the tie (taken from the FCNoteLayerEntry above).
-    - The potential or actual end note of the tie (taken from the FCNoteLayerEntry above).
+- A FCNoteLayerEntry containing both the start and and notes (if they exist).
+You must maintain the lifetime of this variable as long as you are referencing either
+of the other two values.
+- The potential or actual start note of the tie (taken from the FCNoteLayerEntry above).
+- The potential or actual end note of the tie (taken from the FCNoteLayerEntry above).
 
 Be very careful about modifying the return values from this function. If you do it within
 an iterator loop from `eachentry()` or `eachentrysaved()` you could end up overwriting your changes
 with stale data from the iterator loop. You may discover that this function is more useful
 for gathering information than for modifying the values it returns.
 
-@ [for_tied_to] if true, searches for a note tying to the input note. Otherwise, searches for a note tying from the input note.
-@ [tie_must_exist] if true, only returns notes for ties that already exist.
 
 | Input | Type | Description |
 | ----- | ---- | ----------- |
 | `note` | `FCNote` | the note for which to calculated the tie span |
+| `for_tied_to` (optional) | `boolean` | if true, searches for a note tying to the input note. Otherwise, searches for a note tying from the input note. |
+| `tie_must_exist` (optional) | `boolean` | if true, only returns notes for ties that already exist. |
 
 | Return type | Description |
 | ----------- | ----------- |
+| `FCNoteLayerEntry` | A new FCNoteEntryLayer instance that contains both the following two return values. |
+| `FCNote` | The start note of the tie. |
 | `FCNote` | The end note of the tie. |
 
-## calc_default_direction
+### calc_default_direction
 
 ```lua
 tie.calc_default_direction(note, for_tieend, tie_prefs)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L156)
 
 
 Calculates the default direction of a tie based on context and FCTiePrefs but ignoring multi-voice
@@ -113,11 +125,13 @@ FCTieMods. Use tie.calc_direction to calculate the actual current tie direction.
 | ----------- | ----------- |
 | `number` | Returns either TIEMODDIR_UNDER or TIEMODDIR_OVER. If the input note has no applicable tie, it returns 0. |
 
-## calc_direction
+### calc_direction
 
 ```lua
 tie.calc_direction(note, tie_mod, tie_prefs)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L343)
 
 
 Calculates the current direction of a tie based on context and FCTiePrefs, taking into account multi-voice
@@ -135,11 +149,13 @@ FCTieMods.
 | ----------- | ----------- |
 | `number` | Returns either TIEMODDIR_UNDER or TIEMODDIR_OVER. If the input note has no applicable tie, it returns 0. |
 
-## calc_connection_code
+### calc_connection_code
 
 ```lua
 tie.calc_connection_code(note, placement, direction, for_endpoint, for_tieend, for_pageview, tie_prefs)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L411)
 
 
 Calculates the correct connection code for activating a Tie Placement Start Point or End Point
@@ -160,11 +176,13 @@ in FCTieMod.
 | ----------- | ----------- |
 | `number` | Returns one of TIEMOD_CONNECTION_CODES. If the input note has no applicable tie, it returns TIEMODCNCT_NONE. |
 
-## calc_placement
+### calc_placement
 
 ```lua
 tie.calc_placement(note, tie_mod, for_pageview, direction, tie_prefs)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L519)
 
 
 Calculates the current placement of a tie based on context and FCTiePrefs.
@@ -180,13 +198,16 @@ Calculates the current placement of a tie based on context and FCTiePrefs.
 
 | Return type | Description |
 | ----------- | ----------- |
+| `number` | TIEPLACEMENT_INDEXES value for start point |
 | `number` | TIEPLACEMENT_INDEXES value for end point |
 
-## activate_endpoints
+### activate_endpoints
 
 ```lua
 tie.activate_endpoints(note, tie_mod, for_pageview, tie_prefs)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L643)
 
 
 Activates the placement endpoints of the input tie_mod and initializes them with their
@@ -204,11 +225,13 @@ default values. If an endpoint is already activated, that endpoint is not touche
 | ----------- | ----------- |
 | `boolean` | returns true if anything changed |
 
-## calc_contour_index
+### calc_contour_index
 
 ```lua
 tie.calc_contour_index(note, tie_mod, for_pageview, direction, tie_prefs)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L758)
 
 
 Calculates the current contour index of a tie based on context and FCTiePrefs.
@@ -224,13 +247,16 @@ Calculates the current contour index of a tie based on context and FCTiePrefs.
 
 | Return type | Description |
 | ----------- | ----------- |
+| `number` | CONTOUR_INDEXES value for tie |
 | `number` | calculated length of tie in EVPU |
 
-## activate_contour
+### activate_contour
 
 ```lua
 tie.activate_contour(note, tie_mod, for_pageview, tie_prefs)
 ```
+
+[View source](https://github.com/finale-lua/lua-scripts/tree/master/src/library/tie.lua#L824)
 
 
 Activates the contour fields of the input tie_mod and initializes them with their
