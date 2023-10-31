@@ -122,20 +122,20 @@ context = context or
     range_for_hyphenation = nil,
     current_lyric_type = 0,
     current_lyric_number = 0, 
-    -- current_clean_text and current_lyric_text should only vary because of inconsequential encoding differences between Finale and FCCtrlTextEditor
-    current_clean_text = nil,       -- FCString of the Enigma string the control contained the last time we synced with the document
+    -- We use RTF rather than Enigma for the clean text, because getting it in a timer loop is more efficient and causes no visual artifacts on Windows
+    current_clean_rtf = nil,        -- FCString of the RTF string the control contained the last time we synced with the document
     current_lyric_text = nil,       -- FCString of the Enigma string the document lyric block contained the last time we synced with the document
-    current_editor_text = nil       -- FCString of the last contents of the control, for preserving state between executions of the script
+    current_editor_text = nil       -- FCString of the last Enigma contents of the control, for preserving state between executions of the script
 }
 
-local function is_current_in_editor(fcstr_lyrics)
-    if not context.current_clean_text then
+local function is_current_in_editor(fcstr_rtf)
+    if not context.current_clean_rtf then
         local total_range = finale.FCRange()
         global_dialog:GetControl("text"):GetTotalTextRange(total_range)
         if total_range.Length <= 0 then
             return true
         end
-    elseif fcstr_lyrics:Compare(context.current_clean_text) == 0 then
+    elseif fcstr_rtf:Compare(context.current_clean_rtf) == 0 then
         return true
     end
     return false
@@ -148,11 +148,12 @@ local function update_document(options)
     options = options or { update_active_lyric = true }
     assert(type(options) == "table", "options argument must be a table")
     local lyrics_box = global_dialog:GetControl("text")
-    local new_lyrics = lyrics_box:CreateEnigmaString()
+    local new_rtf = lyrics_box:CreateRTFString()
     local selected_text = finale.FCString()
     global_dialog:GetControl("type"):GetText(selected_text)
     finenv.StartNewUndoBlock("Update " .. selected_text.LuaString .. " " .. context.current_lyric_number .. " Lyrics", false)
-    if not is_current_in_editor(new_lyrics) then
+    if not is_current_in_editor(new_rtf) then
+        local new_lyrics = lyrics_box:CreateEnigmaString()
         local lyrics_instance = lyrics_classes[context.current_lyric_type]()
         local loaded = lyrics_instance:Load(context.current_lyric_number)
         local total_range = finale.FCRange()
@@ -177,7 +178,7 @@ local function update_document(options)
             context.current_lyric_text = nil
         end
     end
-    context.current_clean_text = new_lyrics
+    context.current_clean_rtf = new_rtf
     if options.update_active_lyric then
         local active_lyric = finale.FCActiveLyric()
         if active_lyric:Load() then
@@ -238,7 +239,7 @@ local function update_dlg_text()
         lyrics_box:SetText("")
         context.current_lyric_text = nil
     end
-    context.current_clean_text = lyrics_box:CreateEnigmaString() -- always get the current clean text out of the edit control
+    context.current_clean_rtf = lyrics_box:CreateRTFString()
     lyrics_box:ResetUndoState()
     lyrics_box:SetSelection(selection_range)
 end
@@ -317,7 +318,7 @@ local function update_from_active_lyric(options)
             context.current_lyric_type = active_lyric.BlockType
             edit_type:SetInteger(active_lyric.TextBlockID)
             context.current_lyric_number = active_lyric.TextBlockID
-            if options.force or is_current_in_editor(global_dialog:GetControl("text"):CreateEnigmaString()) then
+            if options.force or is_current_in_editor(global_dialog:GetControl("text"):CreateRTFString()) then
                 update_dlg_text()
             end
             updated = true
@@ -325,7 +326,7 @@ local function update_from_active_lyric(options)
     end
     if not updated then
         local edit_text = global_dialog:GetControl("text")
-        if is_current_in_editor(edit_text:CreateEnigmaString()) then
+        if is_current_in_editor(edit_text:CreateRTFString()) then
             local lyrics_instance = lyrics_classes[context.current_lyric_type]()
             if lyrics_instance:Load(context.current_lyric_number) then
                 local curr_lyrics = lyrics_instance:CreateString()
