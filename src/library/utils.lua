@@ -303,4 +303,21 @@ function utils.require_embedded(library_name)
     return require(library_name)
 end
 
+--[[
+% win_mac
+
+Returns the winval or the macval depending on which operating system the script is running on.
+
+@ windows_value (any) The Windows value to return
+@ mac_value (any) The macOS value to return
+: (any) The windows_value or mac_value based on finenv.UI()IsOnWindows()
+]]
+
+function utils.win_mac(windows_value, mac_value)
+    if finenv.UI():IsOnWindows() then
+        return windows_value
+    end
+    return mac_value
+end
+
 return utils
