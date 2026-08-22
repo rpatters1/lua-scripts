@@ -3,9 +3,10 @@ function plugindef()
     finaleplugin.RequireSelection = false
     finaleplugin.CategoryTags = "Document"
     finaleplugin.MinJWLuaVersion = 0.76
-    finaleplugin.Version = "1.0.0"
+    finaleplugin.Version = "1.0.1"
     finaleplugin.Notes = [[
         Recursively upgrades every .mus or .musx file in a selected folder tree to Finale 27 .musx format.
+        Files with other extensions are also included when they begin with a recognized Finale binary banner.
 
         Upgraded files are written into a sibling subfolder named "-finale27" inside each source folder.
         That subfolder is skipped during traversal, so rerunning the script will not reprocess prior output.
@@ -13,7 +14,7 @@ function plugindef()
         The script leaves source files unchanged. Existing upgraded files are overwritten on each run.
     ]]
     return "Upgrade Folder To Finale 27...", "Upgrade Folder To Finale 27",
-        "Upgrade every .mus or .musx file in a folder tree to Finale 27 .musx copies"
+        "Upgrade Finale files in a folder tree to Finale 27 .musx copies"
 end
 
 local client = require("library.client")
@@ -31,6 +32,12 @@ local TIMER_ID <const> = 1
 local COPY_CHUNK_SIZE <const> = 65536
 local PATH_DELIMITER <const> = finenv.UI():IsOnWindows() and "\\" or "/"
 local LOGFILE_NAME <const> = "finale27-upgrade.log"
+local FINALE_BINARY_BANNERS <const> = {
+    "ENIGMA BINARY FILE",
+    "Finale\xAA",
+    "Finale(R)",
+    "Finale(TM)",
+}
 
 local function to_os_path(utf8_path)
     return client.encode_with_client_codepage(utf8_path)
@@ -38,6 +45,21 @@ end
 
 local function get_file_attributes(path)
     return lfs.attributes(to_os_path(path))
+end
+
+local function has_finale_binary_banner(path)
+    local file <close> = io.open(to_os_path(path), "rb")
+    if not file then
+        return false
+    end
+
+    local header = file:read(#FINALE_BINARY_BANNERS[1]) or ""
+    for _, banner in ipairs(FINALE_BINARY_BANNERS) do
+        if header:sub(1, #banner) == banner then
+            return true
+        end
+    end
+    return false
 end
 
 local function select_directory()
@@ -183,7 +205,10 @@ local function resolve_output_names(tasks)
             group[1].output_name = group[1].file_name .. OUTPUT_EXTENSION
         else
             for _, task in ipairs(group) do
-                local suffix = (task.extension == MUS_EXTENSION) and ".from-mus" or ".from-musx"
+                local suffix = task.extension == MUS_EXTENSION and ".from-mus"
+                    or task.extension == MUSX_EXTENSION and ".from-musx"
+                    or task.extension == "" and ".from-no-extension"
+                    or ".from-" .. task.extension:sub(2)
                 task.output_name = task.file_name .. suffix .. OUTPUT_EXTENSION
             end
         end
@@ -196,7 +221,8 @@ local function collect_upgrade_tasks(root_folder)
 
     local function visit_directory(folder_utf8, folder_os)
         for lfs_file in lfs.dir(folder_os) do
-            if lfs_file ~= "." and lfs_file ~= ".." and lfs_file:sub(1, 2) ~= "._" then
+            if lfs_file ~= "." and lfs_file ~= ".." and lfs_file:sub(1, 2) ~= "._"
+                and lfs_file ~= LOGFILE_NAME then
                 local item_mode = lfs.attributes(folder_os .. lfs_file, "mode")
                 local item_utf8 = text.convert_encoding(lfs_file, text.get_default_codepage(), text.get_utf8_codepage())
                 if item_mode == "directory" then
@@ -206,13 +232,19 @@ local function collect_upgrade_tasks(root_folder)
                 elseif item_mode == "file" or item_mode == "link" then
                     local _, file_name, extension = utils.split_file_path(item_utf8)
                     local normalized_extension = extension and extension:lower() or ""
-                    if normalized_extension == MUS_EXTENSION or normalized_extension == MUSX_EXTENSION then
+                    local source_path = folder_utf8 .. item_utf8
+                    local is_bannered_finale_file = normalized_extension ~= MUS_EXTENSION
+                        and normalized_extension ~= MUSX_EXTENSION
+                        and has_finale_binary_banner(source_path)
+                    if normalized_extension == MUS_EXTENSION or normalized_extension == MUSX_EXTENSION
+                        or is_bannered_finale_file then
                         table.insert(tasks, {
                             folder = folder_utf8,
                             file_name = file_name,
                             extension = normalized_extension,
+                            temp_extension = is_bannered_finale_file and MUS_EXTENSION or normalized_extension,
                             source_name = item_utf8,
-                            source_path = folder_utf8 .. item_utf8,
+                            source_path = source_path,
                         })
                     end
                 end
@@ -260,7 +292,7 @@ local function upgrade_document(task, state)
     end
 
     local output_path = output_folder_path .. task.output_name
-    local temp_copy_path = make_temp_copy_path(output_folder_path, task.file_name, task.extension)
+    local temp_copy_path = make_temp_copy_path(output_folder_path, task.file_name, task.temp_extension)
     local copy_success, copy_err = copy_file_binary(task.source_path, temp_copy_path)
     if not copy_success then
         return false, copy_err
@@ -269,6 +301,7 @@ local function upgrade_document(task, state)
     local document = finale.FCDocument()
     local opened = document:Open(finale.FCString(temp_copy_path), true, nil, true, false, true)
     if not opened then
+        document:SwitchBack()
         os.remove(to_os_path(temp_copy_path))
         return false, "unable to open temporary copy in Finale"
     end
@@ -415,8 +448,8 @@ local function upgrade_folder_to_finale_27()
     local logfile_path = initialize_logfile(selected_directory)
     local tasks = collect_upgrade_tasks(selected_directory)
     if #tasks == 0 then
-        log_message(logfile_path, "No Finale .mus or .musx files found.", "Info")
-        finenv.UI():AlertInfo("No Finale .mus or .musx files found in " .. selected_directory, "Nothing To Process")
+        log_message(logfile_path, "No Finale files found.", "Info")
+        finenv.UI():AlertInfo("No Finale files found in " .. selected_directory, "Nothing To Process")
         return
     end
 
